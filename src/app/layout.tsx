@@ -28,7 +28,13 @@ export const metadata: Metadata = {
   description:
     'Experiencia de barbería masculina en Catamarca. Reservá tu turno online en tiempo real para corte, barba y color con confirmación inmediata.',
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/icon.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
   },
 };
 
