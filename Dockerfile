@@ -22,6 +22,8 @@ RUN npm run build
 
 # 3. Etapa de producción mínima (runner)
 FROM node:20-alpine AS runner
+RUN apk add --no-cache tzdata
+ENV TZ=America/Argentina/Catamarca
 WORKDIR /app
 
 ENV NODE_ENV=production

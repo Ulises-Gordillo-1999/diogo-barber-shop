@@ -10,22 +10,33 @@ export interface TimeSlot {
   reason?: string;
 }
 
+// Zona horaria comercial de Diogo Barber Shop (Catamarca / Argentina: UTC-3)
+const TIMEZONE_OFFSET_HOURS = -3;
+const TIMEZONE_OFFSET_STR = '-03:00';
+
 /**
- * Convierte hora "HH:MM" y fecha "YYYY-MM-DD" en objeto Date con timezone local
+ * Convierte fecha "YYYY-MM-DD" y hora "HH:MM" en objeto Date fijado en UTC-3 (Argentina).
+ * Esto evita desfases horarios si el servidor corre en UTC (VPS Docker por defecto).
  */
 export function parseDateTime(dateStr: string, timeStr: string): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
   const [hours, minutes] = timeStr.split(':').map(Number);
-  return new Date(year, month - 1, day, hours, minutes, 0, 0);
+  // Construir string ISO con offset estricto de Argentina
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const iso = `${year}-${pad(month)}-${pad(day)}T${pad(hours)}:${pad(minutes)}:00${TIMEZONE_OFFSET_STR}`;
+  return new Date(iso);
 }
 
 /**
- * Formatea Date a "HH:MM"
+ * Formatea Date a "HH:MM" en la zona horaria de Argentina (America/Argentina/Catamarca)
  */
 export function formatTime(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
+  return new Intl.DateTimeFormat('es-AR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'America/Argentina/Catamarca',
+  }).format(date);
 }
 
 /**
@@ -50,10 +61,9 @@ export async function getAvailableSlots(
 
   const durationMinutes = service.durationMinutes;
 
-  // 2. Determinar día de la semana (0 = Domingo ... 6 = Sábado)
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const targetDate = new Date(year, month - 1, day, 12, 0, 0);
-  const dayOfWeek = targetDate.getDay();
+  // 2. Determinar día de la semana fijado en Argentina
+  const noonDate = new Date(`${dateStr}T12:00:00${TIMEZONE_OFFSET_STR}`);
+  const dayOfWeek = noonDate.getDay();
 
   // 3. Obtener configuración de horario laboral del día
   const hoursList = await db
@@ -67,9 +77,9 @@ export async function getAvailableSlots(
     return []; // Cerrado este día
   }
 
-  // 4. Fechas límite del día para filtrar turnos y bloqueos
-  const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
-  const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+  // 4. Fechas límite del día en Argentina (00:00 a 23:59:59.999 UTC-3)
+  const startOfDay = new Date(`${dateStr}T00:00:00.000${TIMEZONE_OFFSET_STR}`);
+  const endOfDay = new Date(`${dateStr}T23:59:59.999${TIMEZONE_OFFSET_STR}`);
   const now = new Date();
 
   // 5. Consultar bloqueos de agenda vigentes (feriados, descansos, etc.)
