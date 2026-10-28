@@ -2,10 +2,11 @@ import { db } from '@/db';
 import { services } from '@/db/schema';
 import { eq, asc } from 'drizzle-orm';
 import { BookingWizard } from '@/components/booking/BookingWizard';
-import { ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { syncPendingAppointments } from '@/utils/mercadopago';
+import { getReschedulePolicy } from '@/app/actions/clientRescheduleActions';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,7 @@ interface ReservarPageProps {
 export default async function ReservarPage({ searchParams }: ReservarPageProps) {
   const { serviceId } = await searchParams;
   await syncPendingAppointments();
+  const reschedulePolicy = await getReschedulePolicy();
 
   const activeServices = await db
     .select()
@@ -55,18 +57,26 @@ export default async function ReservarPage({ searchParams }: ReservarPageProps) 
           </div>
         </Link>
 
-        <div className="flex items-center gap-3">
-          <span className="hidden md:inline-flex items-center gap-1.5 text-[11px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Pago Seguro
-          </span>
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/mi-turno"
+            className="inline-flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-wider text-[#b38f2d] dark:text-[#d4af37] bg-[#d4af37]/10 hover:bg-[#d4af37] hover:text-zinc-950 border border-[#d4af37]/30 px-3 py-2 rounded-xl transition-all min-h-[42px]"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Reprogramar Turno</span>
+            <span className="sm:hidden">Mi Turno</span>
+          </Link>
           <ThemeToggle />
         </div>
       </header>
 
       {/* Contenido Principal */}
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <BookingWizard services={activeServices} initialServiceId={serviceId} />
+        <BookingWizard
+          services={activeServices}
+          initialServiceId={serviceId}
+          minRescheduleHours={reschedulePolicy.minHoursBefore}
+        />
       </main>
 
       {/* Footer */}

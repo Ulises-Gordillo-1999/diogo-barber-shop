@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { syncPendingAppointments } from '@/utils/mercadopago';
+import { getReschedulePolicy } from '@/app/actions/clientRescheduleActions';
 
 interface ConfirmacionPageProps {
   searchParams: Promise<{
@@ -29,8 +30,8 @@ export default async function ConfirmacionPage({ searchParams }: ConfirmacionPag
   } = await searchParams;
 
   // Reconciliación segura server-to-server contra la API oficial de Mercado Pago
-  // Nunca confiamos ciegamente en parámetros de URL (?status=approved) para alterar estados en BD
   await syncPendingAppointments();
+  const reschedulePolicy = await getReschedulePolicy();
 
   let appointmentData: {
     id: string;
@@ -65,8 +66,10 @@ export default async function ConfirmacionPage({ searchParams }: ConfirmacionPag
     }
   }
 
-  // El turno se muestra como confirmado únicamente si en la base de datos figura CONFIRMED
-  const isApproved = appointmentData?.status === 'CONFIRMED';
+  // El turno se muestra como confirmado únicamente si en la base de datos figura CONFIRMED o RESCHEDULED
+  const isApproved =
+    appointmentData?.status === 'CONFIRMED' ||
+    appointmentData?.status === 'RESCHEDULED';
   const isFailure =
     appointmentData?.status === 'CANCELLED' ||
     status === 'failure' ||
@@ -165,6 +168,30 @@ export default async function ConfirmacionPage({ searchParams }: ConfirmacionPag
                       ${Number(appointmentData.price).toLocaleString('es-AR')}
                     </strong>
                   </div>
+                </div>
+              )}
+
+              {/* Aviso de Política de Reprogramación Dinámica */}
+              {reschedulePolicy.enabled && appointmentData && (
+                <div className="p-4 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30 text-left space-y-3">
+                  <div className="flex items-start gap-2.5 text-xs">
+                    <RotateCcw className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                    <p className="text-slate-700 dark:text-[#f3ede4]/90 leading-relaxed">
+                      <strong>¿Te surgió un imprevisto?</strong> Podés reprogramar tu turno sin cargo desde nuestra web hasta{' '}
+                      <strong className="text-amber-600 dark:text-[#e3b964]">
+                        {reschedulePolicy.minHoursBefore}{' '}
+                        {reschedulePolicy.minHoursBefore === 1 ? 'hora' : 'horas'} antes
+                      </strong>{' '}
+                      de tu horario reservado.
+                    </p>
+                  </div>
+                  <Link
+                    href={`/mi-turno?appointmentId=${appointmentData.id}`}
+                    className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold uppercase tracking-wider bg-[#d4af37]/20 hover:bg-[#d4af37] text-[#9a7b22] dark:text-[#e3b964] hover:text-zinc-950 border border-[#d4af37]/35 transition-all min-h-[42px]"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Gestionar o Reprogramar mi Turno</span>
+                  </Link>
                 </div>
               )}
 

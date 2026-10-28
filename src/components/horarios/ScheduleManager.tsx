@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Clock,
   Calendar,
   Plus,
   Trash2,
@@ -10,17 +9,23 @@ import {
   Save,
   Loader2,
   ShieldAlert,
+  RotateCcw,
 } from 'lucide-react';
 import { NewBlockModal } from './NewBlockModal';
 import {
   updateWeeklyHoursAction,
   deleteScheduleBlockAction,
 } from '@/app/actions/scheduleActions';
+import {
+  updateReschedulePolicyAction,
+  type ReschedulePolicy,
+} from '@/app/actions/clientRescheduleActions';
 import type { BusinessHour, ScheduleBlock } from '@/db/schema';
 
 interface ScheduleManagerProps {
   initialHours: BusinessHour[];
   initialBlocks: ScheduleBlock[];
+  initialReschedulePolicy?: ReschedulePolicy;
   isAdmin: boolean;
 }
 
@@ -37,6 +42,7 @@ const DAY_NAMES = [
 export function ScheduleManager({
   initialHours,
   initialBlocks,
+  initialReschedulePolicy = { enabled: true, minHoursBefore: 2 },
   isAdmin,
 }: ScheduleManagerProps) {
   const [hoursList, setHoursList] = useState(initialHours);
@@ -44,8 +50,32 @@ export function ScheduleManager({
   const [activeTab, setActiveTab] = useState<'weekly' | 'blocks'>('weekly');
   const [isNewBlockOpen, setIsNewBlockOpen] = useState(false);
 
+  // Estado de Política de Reprogramación Autogestionada
+  const [policyEnabled, setPolicyEnabled] = useState(
+    initialReschedulePolicy.enabled
+  );
+  const [minHoursBefore, setMinHoursBefore] = useState(
+    initialReschedulePolicy.minHoursBefore
+  );
+  const [savingPolicy, setSavingPolicy] = useState(false);
+  const [savedPolicySuccess, setSavedPolicySuccess] = useState(false);
+
   const [savingDay, setSavingDay] = useState<number | null>(null);
   const [savedSuccessDay, setSavedSuccessDay] = useState<number | null>(null);
+
+  const handleSavePolicy = async () => {
+    setSavingPolicy(true);
+    setSavedPolicySuccess(false);
+    const res = await updateReschedulePolicyAction({
+      enabled: policyEnabled,
+      minHoursBefore,
+    });
+    setSavingPolicy(false);
+    if (res.success) {
+      setSavedPolicySuccess(true);
+      setTimeout(() => setSavedPolicySuccess(false), 2500);
+    }
+  };
 
   const updateDayField = <K extends keyof BusinessHour>(
     dayOfWeek: number,
@@ -92,14 +122,13 @@ export function ScheduleManager({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#100f13] border border-zinc-200/90 dark:border-zinc-800/90 shadow-xs">
         <div>
           <span className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-[#b38f2d] dark:text-[#d4af37] block mb-1">
-            CONFIGURACIÓN DE APERTURA
+            CONFIGURACIÓN DE APERTURA & REGLAS
           </span>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-[#f4efe6]">
             Horarios Laborales & Bloqueos
           </h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-            Definí los turnos de mañana y tarde para cada día de la semana o bloqueá
-            fechas especiales.
+            Definí los turnos de mañana y tarde, la anticipación para reprogramar y bloqueos de feriados.
           </p>
         </div>
 
@@ -113,6 +142,121 @@ export function ScheduleManager({
             <span>Nuevo Bloqueo</span>
           </button>
         )}
+      </div>
+
+      {/* =====================================================================
+          REGLA DE REPROGRAMACIÓN AUTOGESTIONADA POR EL CLIENTE (/mi-turno)
+      ====================================================================== */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-white dark:bg-[#100f13] border border-[#d4af37]/35 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+        <div className="flex items-start gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/30 flex items-center justify-center text-[#b38f2d] dark:text-[#d4af37] shrink-0 mt-0.5">
+            <RotateCcw className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#b38f2d] dark:text-[#d4af37]">
+                AUTOGESTIÓN DE CLIENTES (/MI-TURNO)
+              </span>
+              <span
+                className={`px-2 py-0.5 rounded-full font-mono text-[10px] font-bold ${
+                  policyEnabled
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                    : 'bg-zinc-500/10 text-zinc-400 border border-zinc-500/20'
+                }`}
+              >
+                {policyEnabled ? 'Activa' : 'Pausada'}
+              </span>
+            </div>
+            <h2 className="text-base sm:text-lg font-extrabold text-zinc-950 dark:text-[#f4efe6] mt-0.5">
+              Tiempo mínimo de anticipación para reprogramar un turno pagado
+            </h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 max-w-2xl">
+              El cliente recibe este aviso al confirmar su pago y puede cambiar su horario por sí mismo hasta{' '}
+              <strong className="text-zinc-900 dark:text-[#d4af37]">
+                {minHoursBefore} {minHoursBefore === 1 ? 'hora' : 'horas'} antes
+              </strong>{' '}
+              del turno sin que tengas que contestar WhatsApp.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Switch Activar/Desactivar */}
+          <label className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 cursor-pointer min-h-[44px]">
+            <input
+              type="checkbox"
+              disabled={!isAdmin}
+              checked={policyEnabled}
+              onChange={(e) => setPolicyEnabled(e.target.checked)}
+              className="w-4 h-4 rounded accent-[#d4af37]"
+            />
+            <span className="text-xs font-bold text-zinc-700 dark:text-zinc-200">
+              Permitir reprogramar
+            </span>
+          </label>
+
+          {/* Selector de Horas de Anticipación */}
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 min-h-[44px]">
+            <span className="font-mono text-[11px] uppercase text-zinc-400">
+              Hasta:
+            </span>
+            <select
+              disabled={!isAdmin || !policyEnabled}
+              value={minHoursBefore}
+              onChange={(e) => setMinHoursBefore(Number(e.target.value))}
+              className="font-mono text-xs font-extrabold bg-transparent text-zinc-950 dark:text-[#d4af37] focus:outline-none cursor-pointer"
+            >
+              <option value={1} className="bg-white dark:bg-zinc-900">
+                1 hora antes
+              </option>
+              <option value={2} className="bg-white dark:bg-zinc-900">
+                2 horas antes
+              </option>
+              <option value={3} className="bg-white dark:bg-zinc-900">
+                3 horas antes
+              </option>
+              <option value={4} className="bg-white dark:bg-zinc-900">
+                4 horas antes
+              </option>
+              <option value={6} className="bg-white dark:bg-zinc-900">
+                6 horas antes
+              </option>
+              <option value={12} className="bg-white dark:bg-zinc-900">
+                12 horas antes
+              </option>
+              <option value={24} className="bg-white dark:bg-zinc-900">
+                24 horas antes
+              </option>
+            </select>
+          </div>
+
+          {isAdmin && (
+            <button
+              type="button"
+              disabled={savingPolicy}
+              onClick={handleSavePolicy}
+              className={`inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all min-h-[44px] cursor-pointer ${
+                savedPolicySuccess
+                  ? 'bg-emerald-500 text-zinc-950'
+                  : 'bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-zinc-950 shadow-md shadow-[#d4af37]/20'
+              }`}
+            >
+              {savingPolicy ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : savedPolicySuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Regla Guardada</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Guardar Regla</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}

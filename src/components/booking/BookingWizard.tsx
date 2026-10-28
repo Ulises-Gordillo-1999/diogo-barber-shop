@@ -26,9 +26,14 @@ import type { TimeSlot } from '@/utils/availability';
 interface BookingWizardProps {
   services: Service[];
   initialServiceId?: string;
+  minRescheduleHours?: number;
 }
 
-export function BookingWizard({ services, initialServiceId }: BookingWizardProps) {
+export function BookingWizard({
+  services,
+  initialServiceId,
+  minRescheduleHours = 2,
+}: BookingWizardProps) {
   // Generar los próximos 14 días disponibles a partir de hoy
   const availableDates = Array.from({ length: 14 }).map((_, index) => {
     const d = new Date();
@@ -599,6 +604,13 @@ export function BookingWizard({ services, initialServiceId }: BookingWizardProps
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>Confirmación automática en agenda</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                <span>
+                  Reprogramación sin cargo hasta {minRescheduleHours}{' '}
+                  {minRescheduleHours === 1 ? 'hora' : 'horas'} antes
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />

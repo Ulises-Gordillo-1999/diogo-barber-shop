@@ -149,3 +149,4 @@ npx tsc --noEmit
 
 Desarrollado para **Diogo Barber Shop** (@diogobarbershopp) • Catamarca, Argentina.  
 Diseño, arquitectura y desarrollo por **Upgrade Informática**.
+

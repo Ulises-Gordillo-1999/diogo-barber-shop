@@ -183,6 +183,12 @@ export default async function HomePage() {
             >
               Horarios
             </a>
+            <Link
+              href="/mi-turno"
+              className="text-[#b38f2d] dark:text-[#d4af37] hover:underline py-2"
+            >
+              Reprogramar Turno
+            </Link>
           </nav>
 
           {/* Actions */}
@@ -255,12 +261,12 @@ export default async function HomePage() {
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
 
-                <a
-                  href="#servicios"
+                <Link
+                  href="/mi-turno"
                   className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl text-sm font-semibold border border-zinc-300 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 hover:border-[#d4af37]/60 text-zinc-800 dark:text-zinc-200 transition-all min-h-[54px]"
                 >
-                  <span>Ver Carta de Servicios</span>
-                </a>
+                  <span>Reprogramar mi Turno</span>
+                </Link>
               </div>
 
               {/* Architectural KPI Strip */}
