@@ -73,12 +73,13 @@ export default async function ConfirmacionPage({ searchParams }: ConfirmacionPag
     status === 'rejected' ||
     collection_status === 'rejected';
 
-  // Fecha y hora formateadas en español
+  // Fecha y hora formateadas en español con zona horaria de Argentina
   const formattedDate = appointmentData
     ? new Intl.DateTimeFormat('es-AR', {
         weekday: 'long',
         day: 'numeric',
         month: 'long',
+        timeZone: 'America/Argentina/Catamarca',
       }).format(new Date(appointmentData.startTime))
     : '';
 
@@ -87,6 +88,7 @@ export default async function ConfirmacionPage({ searchParams }: ConfirmacionPag
         hour: '2-digit',
         minute: '2-digit',
         hour12: false,
+        timeZone: 'America/Argentina/Catamarca',
       }).format(new Date(appointmentData.startTime))
     : '';
 

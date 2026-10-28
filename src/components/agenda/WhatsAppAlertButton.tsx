@@ -32,12 +32,14 @@ export function WhatsAppAlertButton({
     weekday: 'long',
     day: 'numeric',
     month: 'long',
+    timeZone: 'America/Argentina/Catamarca',
   }).format(startDate);
 
   const formattedTime = new Intl.DateTimeFormat('es-AR', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
+    timeZone: 'America/Argentina/Catamarca',
   }).format(startDate);
 
   let message = '';

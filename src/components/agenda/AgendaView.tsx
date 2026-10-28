@@ -531,6 +531,7 @@ export function AgendaView({
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: false,
+                timeZone: 'America/Argentina/Catamarca',
               }).format(new Date(app.startTime));
               const statusMeta = getStatusMeta(app.status);
 
@@ -651,6 +652,7 @@ export function AgendaView({
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false,
+                    timeZone: 'America/Argentina/Catamarca',
                   }).format(new Date(app.startTime));
                   const statusMeta = getStatusMeta(app.status);
 
