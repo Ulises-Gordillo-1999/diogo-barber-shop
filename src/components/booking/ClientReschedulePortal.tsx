@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import Link from 'next/link';
 import {
   Search,
@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Loader2,
   Phone,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   lookupClientAppointmentsAction,
@@ -70,6 +72,18 @@ export function ClientReschedulePortal({
     monthLabel: d.monthName.toUpperCase(),
     isClosed: d.isClosed,
   }));
+
+  const rescheduleDatesScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollRescheduleDates = (direction: 'left' | 'right') => {
+    if (rescheduleDatesScrollRef.current) {
+      const scrollAmount = Math.max(240, Math.floor(rescheduleDatesScrollRef.current.clientWidth * 0.7));
+      rescheduleDatesScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -395,38 +409,92 @@ export function ClientReschedulePortal({
 
                   {/* 1. Elegir nuevo día */}
                   <div className="space-y-2">
-                    <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#b38f2d] dark:text-[#d4af37] block">
-                      1. ELEGÍ EL NUEVO DÍA:
-                    </label>
-                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                      {nextDates.map((d) => {
-                        const active = selectedDate === d.dateStr;
-                        return (
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="font-mono text-[11px] font-bold uppercase tracking-wider text-[#b38f2d] dark:text-[#d4af37] block">
+                        1. ELEGÍ EL NUEVO DÍA:
+                      </label>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="font-mono text-[11px] text-zinc-400 hidden sm:inline">
+                          Navegar:
+                        </span>
+                        <div className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900/90 p-0.5 rounded-xl border border-zinc-200 dark:border-zinc-800">
                           <button
-                            key={d.dateStr}
                             type="button"
-                            disabled={d.isClosed}
-                            onClick={() => handleSelectDate(d.dateStr)}
-                            className={`flex flex-col items-center justify-center min-w-[68px] py-2.5 px-3 rounded-2xl border transition-all shrink-0 ${
-                              d.isClosed
-                                ? 'bg-zinc-100/60 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 text-zinc-400 dark:text-zinc-600 opacity-50 cursor-not-allowed'
-                                : active
-                                ? 'bg-[#d4af37] border-[#d4af37] text-zinc-950 font-extrabold shadow-md cursor-pointer'
-                                : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-[#d4af37]/50 cursor-pointer'
-                            }`}
+                            onClick={() => scrollRescheduleDates('left')}
+                            aria-label="Ver días anteriores"
+                            title="Días anteriores"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-[#d4af37] hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer"
                           >
-                            <span className="font-mono text-[10px] opacity-80">
-                              {d.dayLabel}
-                            </span>
-                            <span className="font-mono text-lg font-extrabold leading-tight">
-                              {d.dayNum}
-                            </span>
-                            <span className="font-mono text-[9px] opacity-75">
-                              {d.isClosed ? 'CERRADO' : d.monthLabel}
-                            </span>
+                            <ChevronLeft className="w-3.5 h-3.5" />
                           </button>
-                        );
-                      })}
+                          <button
+                            type="button"
+                            onClick={() => scrollRescheduleDates('right')}
+                            aria-label="Ver siguientes días"
+                            title="Días siguientes"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-[#d4af37] hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-all active:scale-95 cursor-pointer"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="relative group/scroll">
+                      {/* Botón flotante Izquierdo Desktop */}
+                      <button
+                        type="button"
+                        onClick={() => scrollRescheduleDates('left')}
+                        aria-label="Desplazar a la izquierda"
+                        className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-950/95 dark:bg-black/95 border border-[#d4af37]/50 text-[#d4af37] shadow-lg items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                      </button>
+
+                      <div
+                        ref={rescheduleDatesScrollRef}
+                        className="flex gap-2 overflow-x-auto pb-2 scrollbar-none snap-x scroll-smooth"
+                      >
+                        {nextDates.map((d) => {
+                          const active = selectedDate === d.dateStr;
+                          return (
+                            <button
+                              key={d.dateStr}
+                              type="button"
+                              disabled={d.isClosed}
+                              onClick={() => handleSelectDate(d.dateStr)}
+                              className={`flex flex-col items-center justify-center min-w-[68px] py-2.5 px-3 rounded-2xl border transition-all shrink-0 snap-start ${
+                                d.isClosed
+                                  ? 'bg-zinc-100/60 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 text-zinc-400 dark:text-zinc-600 opacity-50 cursor-not-allowed'
+                                  : active
+                                  ? 'bg-[#d4af37] border-[#d4af37] text-zinc-950 font-extrabold shadow-md cursor-pointer'
+                                  : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-[#d4af37]/50 cursor-pointer'
+                              }`}
+                            >
+                              <span className="font-mono text-[10px] opacity-80">
+                                {d.dayLabel}
+                              </span>
+                              <span className="font-mono text-lg font-extrabold leading-tight">
+                                {d.dayNum}
+                              </span>
+                              <span className="font-mono text-[9px] opacity-75">
+                                {d.isClosed ? 'CERRADO' : d.monthLabel}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Botón flotante Derecho Desktop */}
+                      <button
+                        type="button"
+                        onClick={() => scrollRescheduleDates('right')}
+                        aria-label="Desplazar a la derecha"
+                        className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-zinc-950/95 dark:bg-black/95 border border-[#d4af37]/50 text-[#d4af37] shadow-lg items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                      </button>
                     </div>
                   </div>
 

@@ -51,3 +51,4 @@ export async function getAndClearPasskeyChallengeCookie(): Promise<string | null
   }
   return challenge;
 }
+

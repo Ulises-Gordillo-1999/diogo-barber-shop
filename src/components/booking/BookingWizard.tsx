@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useTransition } from 'react';
+import { useState, useEffect, useMemo, useTransition, useRef } from 'react';
 import {
   Scissors,
   Calendar as CalendarIcon,
@@ -19,6 +19,8 @@ import {
   Plus,
   Trash2,
   ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import {
   fetchAvailableSlotsAction,
@@ -80,6 +82,19 @@ export function BookingWizard({
 
   // Productos sugeridos sumados al turno (Upselling)
   const [attachedProducts, setAttachedProducts] = useState<Record<string, number>>({});
+
+  // Referencia para scroll horizontal del calendario en PC y móviles
+  const datesScrollRef = useRef<HTMLDivElement>(null);
+
+  const scrollDates = (direction: 'left' | 'right') => {
+    if (datesScrollRef.current) {
+      const scrollAmount = Math.max(260, Math.floor(datesScrollRef.current.clientWidth * 0.7));
+      datesScrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth',
+      });
+    }
+  };
 
   // Estados del Formulario del Cliente
   const [customerName, setCustomerName] = useState('');
@@ -501,54 +516,104 @@ export function BookingWizard({
 
               {/* Selector de Días Horizontal (30 días en zona horaria Catamarca) */}
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-mono uppercase tracking-wider text-zinc-500 dark:text-zinc-400 block truncate">
                     1. Seleccioná el día (Calendario a 30 días):
                   </span>
-                  <span className="font-mono text-[11px] text-zinc-400">
-                    Deslizá para ver todo el mes →
-                  </span>
-                </div>
-                <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
-                  {availableDates.map((d) => {
-                    const isSelected = selectedDate === d.dateStr;
-                    const slotsInThisDate = selectedSlots.filter(
-                      (s) => s.dateStr === d.dateStr
-                    ).length;
-
-                    return (
+                  
+                  {/* Botones de Navegación Horizontal para PC y cualquier pantalla */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="font-mono text-[11px] text-zinc-400 hidden sm:inline">
+                      Deslizá o navegá:
+                    </span>
+                    <div className="inline-flex items-center gap-1 bg-zinc-100 dark:bg-zinc-900/90 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
                       <button
-                        key={d.dateStr}
                         type="button"
-                        disabled={d.isClosed}
-                        onClick={() => setSelectedDate(d.dateStr)}
-                        className={`relative flex flex-col items-center justify-center p-3 rounded-2xl min-w-[76px] min-h-[82px] border shrink-0 transition-all snap-start ${
-                          d.isClosed
-                            ? 'border-zinc-200/50 dark:border-zinc-800/40 bg-zinc-100/60 dark:bg-zinc-900/25 text-zinc-400 dark:text-zinc-600 opacity-50 cursor-not-allowed'
-                            : isSelected
-                            ? 'border-[#d4af37] bg-[#d4af37] text-zinc-950 font-bold shadow-lg shadow-[#d4af37]/20 cursor-pointer'
-                            : slotsInThisDate > 0
-                            ? 'border-[#d4af37] bg-[#d4af37]/15 text-zinc-900 dark:text-[#f4efe6] font-bold cursor-pointer'
-                            : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/70 text-zinc-700 dark:text-zinc-300 hover:border-[#d4af37]/50 cursor-pointer'
-                        }`}
+                        onClick={() => scrollDates('left')}
+                        aria-label="Ver días anteriores"
+                        title="Días anteriores"
+                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-[#d4af37] hover:bg-zinc-200 dark:hover:bg-zinc-800/80 transition-all active:scale-95 cursor-pointer"
                       >
-                        {slotsInThisDate > 0 && (
-                          <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-zinc-950 font-mono text-[10px] font-extrabold flex items-center justify-center shadow-xs">
-                            {slotsInThisDate}
-                          </span>
-                        )}
-                        <span className="font-mono text-[10px] uppercase tracking-wider">
-                          {d.dayName}
-                        </span>
-                        <span className="font-mono text-xl font-extrabold my-0.5">
-                          {d.dayNumber}
-                        </span>
-                        <span className="font-mono text-[9px] uppercase opacity-80">
-                          {d.isClosed ? 'CERRADO' : d.monthName}
-                        </span>
+                        <ChevronLeft className="w-4 h-4" />
                       </button>
-                    );
-                  })}
+                      <button
+                        type="button"
+                        onClick={() => scrollDates('right')}
+                        aria-label="Ver siguientes días"
+                        title="Días siguientes"
+                        className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-[#d4af37] hover:bg-zinc-200 dark:hover:bg-zinc-800/80 transition-all active:scale-95 cursor-pointer"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative group/scroll">
+                  {/* Botón lateral flotante Izquierdo (PC / Pantallas medianas y grandes) */}
+                  <button
+                    type="button"
+                    onClick={() => scrollDates('left')}
+                    aria-label="Desplazar a días anteriores"
+                    className="hidden md:flex absolute -left-3.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-zinc-950/95 dark:bg-black/95 border border-[#d4af37]/50 text-[#d4af37] shadow-xl items-center justify-center hover:scale-110 hover:bg-zinc-900 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+                  </button>
+
+                  <div
+                    ref={datesScrollRef}
+                    className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x scroll-smooth"
+                  >
+                    {availableDates.map((d) => {
+                      const isSelected = selectedDate === d.dateStr;
+                      const slotsInThisDate = selectedSlots.filter(
+                        (s) => s.dateStr === d.dateStr
+                      ).length;
+
+                      return (
+                        <button
+                          key={d.dateStr}
+                          type="button"
+                          disabled={d.isClosed}
+                          onClick={() => setSelectedDate(d.dateStr)}
+                          className={`relative flex flex-col items-center justify-center p-3 rounded-2xl min-w-[76px] min-h-[82px] border shrink-0 transition-all snap-start ${
+                            d.isClosed
+                              ? 'border-zinc-200/50 dark:border-zinc-800/40 bg-zinc-100/60 dark:bg-zinc-900/25 text-zinc-400 dark:text-zinc-600 opacity-50 cursor-not-allowed'
+                              : isSelected
+                              ? 'border-[#d4af37] bg-[#d4af37] text-zinc-950 font-bold shadow-lg shadow-[#d4af37]/20 cursor-pointer'
+                              : slotsInThisDate > 0
+                              ? 'border-[#d4af37] bg-[#d4af37]/15 text-zinc-900 dark:text-[#f4efe6] font-bold cursor-pointer'
+                              : 'border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/70 text-zinc-700 dark:text-zinc-300 hover:border-[#d4af37]/50 cursor-pointer'
+                          }`}
+                        >
+                          {slotsInThisDate > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-emerald-500 text-zinc-950 font-mono text-[10px] font-extrabold flex items-center justify-center shadow-xs">
+                              {slotsInThisDate}
+                            </span>
+                          )}
+                          <span className="font-mono text-[10px] uppercase tracking-wider">
+                            {d.dayName}
+                          </span>
+                          <span className="font-mono text-xl font-extrabold my-0.5">
+                            {d.dayNumber}
+                          </span>
+                          <span className="font-mono text-[9px] uppercase opacity-80">
+                            {d.isClosed ? 'CERRADO' : d.monthName}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Botón lateral flotante Derecho (PC / Pantallas medianas y grandes) */}
+                  <button
+                    type="button"
+                    onClick={() => scrollDates('right')}
+                    aria-label="Desplazar a siguientes días"
+                    className="hidden md:flex absolute -right-3.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-zinc-950/95 dark:bg-black/95 border border-[#d4af37]/50 text-[#d4af37] shadow-xl items-center justify-center hover:scale-110 hover:bg-zinc-900 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+                  </button>
                 </div>
               </div>
 
