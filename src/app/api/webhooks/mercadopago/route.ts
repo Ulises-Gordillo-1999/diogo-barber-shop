@@ -1,12 +1,20 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { db } from '@/db';
-import { appointments, cashTransactions, services } from '@/db/schema';
-import { eq } from 'drizzle-orm';
-import { getMpPayment, verifyMercadoPagoSignature } from '@/utils/mercadopago';
+import { appointments, productOrders } from '@/db/schema';
+import { eq, or } from 'drizzle-orm';
+import {
+  getMpPayment,
+  verifyMercadoPagoSignature,
+  confirmAppointmentGroupAndProducts,
+  confirmProductOrderPayment,
+} from '@/utils/mercadopago';
+import { ensureExtendedSchema } from '@/db/ensureSchema';
 
 export async function POST(request: NextRequest) {
   try {
+    await ensureExtendedSchema();
+
     const xSignature = request.headers.get('x-signature');
     const xRequestId = request.headers.get('x-request-id');
 
@@ -64,73 +72,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Pago sin external_reference' }, { status: 200 });
     }
 
-    const appointmentId = paymentData.external_reference;
+    const externalRef = paymentData.external_reference;
 
-    // 4. Buscar el turno asociado en la base de datos
-    const appointmentList = await db
-      .select({
-        appointment: appointments,
-        service: services,
-      })
-      .from(appointments)
-      .leftJoin(services, eq(appointments.serviceId, services.id))
-      .where(eq(appointments.id, appointmentId))
-      .limit(1);
+    // 4. Caso A: Orden de Compra de Productos de la Tienda (/tienda)
+    if (externalRef.startsWith('ORDER:')) {
+      const orderId = externalRef.replace('ORDER:', '');
 
-    const record = appointmentList[0];
-    if (!record) {
-      console.warn(`Turno ${appointmentId} no encontrado en base de datos.`);
-      return NextResponse.json({ message: 'Turno no encontrado' }, { status: 200 });
-    }
+      if (paymentData.status === 'approved') {
+        await confirmProductOrderPayment(orderId, String(paymentData.id));
+        revalidatePath('/dashboard/inventario');
+        revalidatePath('/dashboard/caja');
+        revalidatePath('/tienda');
+      } else if (
+        paymentData.status === 'rejected' ||
+        paymentData.status === 'cancelled'
+      ) {
+        await db
+          .update(productOrders)
+          .set({
+            status: 'CANCELLED',
+            paymentStatus: 'REJECTED',
+            updatedAt: new Date(),
+          })
+          .where(eq(productOrders.id, orderId));
 
-    const { appointment, service } = record;
-
-    // 5. Si el pago fue aprobado: Confirmar turno e impactar en caja
-    if (paymentData.status === 'approved') {
-      // A. Actualizar estado del turno a CONFIRMED y liberar bloqueo temporal
-      await db
-        .update(appointments)
-        .set({
-          status: 'CONFIRMED',
-          paymentStatus: 'APPROVED',
-          expiresAt: null,
-          mpPaymentId: String(paymentData.id),
-          updatedAt: new Date(),
-        })
-        .where(eq(appointments.id, appointment.id));
-
-      // B. Idempotencia: Verificar si ya existe movimiento de caja registrado para este turno
-      const existingTx = await db
-        .select()
-        .from(cashTransactions)
-        .where(eq(cashTransactions.appointmentId, appointment.id))
-        .limit(1);
-
-      if (existingTx.length === 0) {
-        // C. Registrar ingreso automático en caja
-        await db.insert(cashTransactions).values({
-          type: 'INCOME',
-          category: 'APPOINTMENT',
-          amount: appointment.price,
-          paymentMethod: 'MERCADOPAGO',
-          description: `Cobro online turno - ${appointment.customerName} (${service?.name || 'Servicio'})`,
-          appointmentId: appointment.id,
-          transactionDate: new Date(),
-        });
-
-        console.log(
-          `✅ Turno ${appointment.id} CONFIRMADO e ingreso de $${appointment.price} registrado en caja.`
-        );
+        revalidatePath('/dashboard/inventario');
       }
 
+      return NextResponse.json({ received: true, type: 'order' }, { status: 200 });
+    }
+
+    // 5. Caso B: Reserva de Turno Individual o Múltiple (+ Productos Upsell)
+    const appointmentId = externalRef;
+
+    if (paymentData.status === 'approved') {
+      await confirmAppointmentGroupAndProducts(appointmentId, String(paymentData.id));
       revalidatePath('/dashboard');
       revalidatePath('/dashboard/caja');
+      revalidatePath('/dashboard/inventario');
       revalidatePath('/reservar');
     } else if (
       paymentData.status === 'rejected' ||
       paymentData.status === 'cancelled'
     ) {
-      // Si el pago fue rechazado o cancelado, liberar el turno
       await db
         .update(appointments)
         .set({
@@ -139,15 +123,18 @@ export async function POST(request: NextRequest) {
           cancellationReason: `Pago Mercado Pago ${paymentData.status}`,
           updatedAt: new Date(),
         })
-        .where(eq(appointments.id, appointment.id));
+        .where(
+          or(
+            eq(appointments.id, appointmentId),
+            eq(appointments.groupBookingId, appointmentId)
+          )
+        );
 
       revalidatePath('/dashboard');
       revalidatePath('/reservar');
-
-      console.log(`❌ Turno ${appointment.id} cancelado por pago rechazado.`);
     }
 
-    return NextResponse.json({ received: true }, { status: 200 });
+    return NextResponse.json({ received: true, type: 'appointment' }, { status: 200 });
   } catch (error) {
     console.error('Error no controlado en webhook de Mercado Pago:', error);
     return NextResponse.json(

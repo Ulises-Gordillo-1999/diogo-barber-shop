@@ -2,7 +2,8 @@
 
 import { db } from '@/db';
 import { services } from '@/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { ensureExtendedSchema } from '@/db/ensureSchema';
+import { eq } from 'drizzle-orm';
 import { getSessionUser } from '@/utils/auth';
 import { revalidatePath } from 'next/cache';
 
@@ -12,6 +13,7 @@ export interface ServiceInput {
   durationMinutes: number;
   price: number;
   active?: boolean;
+  suggestedProductIds?: string[];
 }
 
 export interface ServiceResponse {
@@ -29,10 +31,22 @@ export async function createServiceAction(input: ServiceInput): Promise<ServiceR
     return { success: false, error: 'Acción permitida solo para administradores.' };
   }
 
-  const { name, description, durationMinutes, price, active = true } = input;
+  await ensureExtendedSchema();
+
+  const {
+    name,
+    description,
+    durationMinutes,
+    price,
+    active = true,
+    suggestedProductIds = [],
+  } = input;
 
   if (!name.trim() || durationMinutes <= 0 || price <= 0) {
-    return { success: false, error: 'Por favor completá los campos obligatorios con valores válidos.' };
+    return {
+      success: false,
+      error: 'Por favor completá los campos obligatorios con valores válidos.',
+    };
   }
 
   try {
@@ -42,6 +56,7 @@ export async function createServiceAction(input: ServiceInput): Promise<ServiceR
       durationMinutes,
       price: price.toFixed(2),
       active,
+      suggestedProductIds: JSON.stringify(suggestedProductIds),
     });
 
     revalidatePath('/dashboard/servicios');
@@ -65,7 +80,16 @@ export async function updateServiceAction(
     return { success: false, error: 'Acción permitida solo para administradores.' };
   }
 
-  const { name, description, durationMinutes, price, active } = input;
+  await ensureExtendedSchema();
+
+  const {
+    name,
+    description,
+    durationMinutes,
+    price,
+    active,
+    suggestedProductIds = [],
+  } = input;
 
   try {
     await db
@@ -76,6 +100,7 @@ export async function updateServiceAction(
         durationMinutes,
         price: price.toFixed(2),
         active,
+        suggestedProductIds: JSON.stringify(suggestedProductIds),
         updatedAt: new Date(),
       })
       .where(eq(services.id, id));
@@ -137,7 +162,8 @@ export async function deleteServiceAction(id: string): Promise<ServiceResponse> 
     console.error('Error al eliminar servicio:', error);
     return {
       success: false,
-      error: 'No se puede eliminar un servicio que tiene turnos asociados. Podés desactivarlo.',
+      error:
+        'No se puede eliminar un servicio que tiene turnos asociados. Podés desactivarlo.',
     };
   }
 }

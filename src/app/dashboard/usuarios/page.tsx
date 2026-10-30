@@ -4,6 +4,7 @@ import { db } from '@/db';
 import { users } from '@/db/schema';
 import { asc } from 'drizzle-orm';
 import { UsersManager } from '@/components/usuarios/UsersManager';
+import { PasskeyRegisterCard } from '@/components/auth/PasskeyRegisterCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ export default async function UsuariosDashboardPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        <PasskeyRegisterCard />
         <UsersManager initialUsers={allUsers} isAdmin={isAdmin} />
       </div>
     </AppLayout>

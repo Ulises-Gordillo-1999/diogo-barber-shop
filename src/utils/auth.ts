@@ -23,15 +23,18 @@ export interface TokenPayload {
 }
 
 /**
- * Firma un JWT con expiración de 24 horas e identificadores estrictos de emisor y audiencia
+ * Firma un JWT con expiración extendida (30 días por defecto para PWA Móvil) e identificadores estrictos
  */
-export async function signToken(payload: TokenPayload): Promise<string> {
+export async function signToken(
+  payload: TokenPayload,
+  expiresIn: string = '30d'
+): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuer(JWT_ISSUER)
     .setAudience(JWT_AUDIENCE)
     .setIssuedAt()
-    .setExpirationTime('24h')
+    .setExpirationTime(expiresIn)
     .sign(JWT_SECRET);
 }
 
@@ -90,3 +93,5 @@ export async function getSessionUser(): Promise<TokenPayload | null> {
   if (!token) return null;
   return verifyToken(token);
 }
+
+export const getSession = getSessionUser;

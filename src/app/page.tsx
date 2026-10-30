@@ -158,36 +158,36 @@ export default async function HomePage() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-8 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400">
+          <nav className="hidden lg:flex items-center gap-7 text-xs font-semibold uppercase tracking-[0.16em] text-zinc-600 dark:text-zinc-400">
             <a
               href="#servicios"
               className="hover:text-zinc-950 dark:hover:text-[#d4af37] transition-colors py-2"
             >
               Menú & Tarifas
             </a>
-            <a
-              href="#protocolo"
+            <Link
+              href="/tienda"
+              className="hover:text-zinc-950 dark:hover:text-[#d4af37] transition-colors py-2 text-amber-500/90 font-bold"
+            >
+              Tienda & Cadete
+            </Link>
+            <Link
+              href="/blog"
               className="hover:text-zinc-950 dark:hover:text-[#d4af37] transition-colors py-2"
             >
-              Cómo Funciona
-            </a>
+              Blog & Trabajos
+            </Link>
             <a
               href="#lookbook"
               className="hover:text-zinc-950 dark:hover:text-[#d4af37] transition-colors py-2"
             >
-              El Estudio & Reels
-            </a>
-            <a
-              href="#horarios"
-              className="hover:text-zinc-950 dark:hover:text-[#d4af37] transition-colors py-2"
-            >
-              Horarios
+              El Estudio
             </a>
             <Link
               href="/mi-turno"
               className="text-[#b38f2d] dark:text-[#d4af37] hover:underline py-2"
             >
-              Reprogramar Turno
+              Reprogramar
             </Link>
           </nav>
 
@@ -878,7 +878,7 @@ export default async function HomePage() {
           9. FOOTER OFICIAL
       ====================================================================== */}
       <footer className="py-10 px-4 sm:px-6 lg:px-8 border-t border-zinc-200 dark:border-zinc-800/80 bg-[#faf8f5] dark:bg-[#09090b] pb-24 md:pb-10">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <img
               src="/images/logo-diogo.webp"
@@ -891,6 +891,24 @@ export default async function HomePage() {
                 © {new Date().getFullYear()} • Catamarca, Argentina
               </span>
             </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-5 text-xs text-zinc-500 dark:text-zinc-400 font-medium">
+            <Link href="/reservar" className="hover:text-zinc-900 dark:hover:text-[#d4af37] transition-colors">
+              Reservar Turno
+            </Link>
+            <Link href="/tienda" className="hover:text-zinc-900 dark:hover:text-[#d4af37] transition-colors">
+              Tienda & Cadete
+            </Link>
+            <Link href="/blog" className="hover:text-zinc-900 dark:hover:text-[#d4af37] transition-colors">
+              Blog & Cortes
+            </Link>
+            <Link href="/mi-turno" className="hover:text-zinc-900 dark:hover:text-[#d4af37] transition-colors">
+              Reprogramar
+            </Link>
+            <Link href="/dashboard" className="hover:text-zinc-900 dark:hover:text-[#d4af37] transition-colors">
+              Acceso Staff
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">

@@ -103,14 +103,14 @@ export async function loginAction(
       role: user.role,
     });
 
-    // 4. Guardar cookie HttpOnly segura con expiración sincronizada a 24h
+    // 4. Guardar cookie HttpOnly segura con expiración sincronizada a 30 días para Android PWA
     const cookieStore = await cookies();
     cookieStore.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24, // 24 horas
+      maxAge: 30 * 24 * 60 * 60, // 30 días
     });
   } catch (error) {
     console.error('Error en loginAction:', error);

@@ -24,6 +24,7 @@ import {
 } from '@/app/actions/clientRescheduleActions';
 import { fetchAvailableSlotsAction } from '@/app/actions/bookingActions';
 import type { TimeSlot } from '@/utils/availability';
+import { getArgentinaCalendarDays } from '@/utils/dateHelpers';
 
 interface ClientReschedulePortalProps {
   initialAppointments: ClientAppointmentDTO[];
@@ -61,27 +62,14 @@ export function ClientReschedulePortal({
 
   const [isPending, startTransition] = useTransition();
 
-  // Próximos 14 días en zona horaria local
-  const nextDates = Array.from({ length: 14 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const dateStr = `${year}-${month}-${day}`;
-    const dayName = new Intl.DateTimeFormat('es-AR', {
-      weekday: 'short',
-    }).format(d);
-    const monthShort = new Intl.DateTimeFormat('es-AR', {
-      month: 'short',
-    }).format(d);
-    return {
-      dateStr,
-      dayLabel: dayName.replace('.', '').toUpperCase(),
-      dayNum: d.getDate(),
-      monthLabel: monthShort.replace('.', '').toUpperCase(),
-    };
-  });
+  // Próximos 30 días en zona horaria estricta de Catamarca / Argentina
+  const nextDates = getArgentinaCalendarDays(30, [0]).map((d) => ({
+    dateStr: d.dateStr,
+    dayLabel: d.dayName.toUpperCase(),
+    dayNum: d.dayNumber,
+    monthLabel: d.monthName.toUpperCase(),
+    isClosed: d.isClosed,
+  }));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -417,11 +405,14 @@ export function ClientReschedulePortal({
                           <button
                             key={d.dateStr}
                             type="button"
+                            disabled={d.isClosed}
                             onClick={() => handleSelectDate(d.dateStr)}
-                            className={`flex flex-col items-center justify-center min-w-[68px] py-2.5 px-3 rounded-2xl border transition-all shrink-0 cursor-pointer ${
-                              active
-                                ? 'bg-[#d4af37] border-[#d4af37] text-zinc-950 font-extrabold shadow-md'
-                                : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-[#d4af37]/50'
+                            className={`flex flex-col items-center justify-center min-w-[68px] py-2.5 px-3 rounded-2xl border transition-all shrink-0 ${
+                              d.isClosed
+                                ? 'bg-zinc-100/60 dark:bg-zinc-900/30 border-zinc-200/50 dark:border-zinc-800/50 text-zinc-400 dark:text-zinc-600 opacity-50 cursor-not-allowed'
+                                : active
+                                ? 'bg-[#d4af37] border-[#d4af37] text-zinc-950 font-extrabold shadow-md cursor-pointer'
+                                : 'bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:border-[#d4af37]/50 cursor-pointer'
                             }`}
                           >
                             <span className="font-mono text-[10px] opacity-80">
@@ -431,7 +422,7 @@ export function ClientReschedulePortal({
                               {d.dayNum}
                             </span>
                             <span className="font-mono text-[9px] opacity-75">
-                              {d.monthLabel}
+                              {d.isClosed ? 'CERRADO' : d.monthLabel}
                             </span>
                           </button>
                         );
@@ -528,3 +519,4 @@ export function ClientReschedulePortal({
     </div>
   );
 }
+

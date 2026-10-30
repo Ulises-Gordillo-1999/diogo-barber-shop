@@ -101,3 +101,4 @@ export default async function MiTurnoPage({ searchParams }: MiTurnoPageProps) {
     </div>
   );
 }
+

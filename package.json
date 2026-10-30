@@ -1,6 +1,6 @@
 {
   "name": "diogo-barber-shop",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -15,6 +15,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@simplewebauthn/server": "^14.0.3",
     "bcryptjs": "^3.0.2",
     "drizzle-orm": "^0.45.1",
     "jose": "^6.2.1",
@@ -26,7 +27,8 @@
     "postgres": "^3.4.5",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "sharp": "^0.35.5"
+    "sharp": "^0.35.5",
+    "webauthn-polyfills": "^0.1.7"
   },
   "overrides": {
     "esbuild": "^0.25.0",

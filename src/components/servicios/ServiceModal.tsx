@@ -2,14 +2,15 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { Scissors, Clock, DollarSign, Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles } from 'lucide-react';
 import { createServiceAction, updateServiceAction } from '@/app/actions/servicesActions';
-import type { Service } from '@/db/schema';
+import type { Service, Product } from '@/db/schema';
 
 interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   service?: Service | null;
+  availableProducts?: Product[];
   onSaved?: () => void;
 }
 
@@ -17,6 +18,7 @@ export function ServiceModal({
   isOpen,
   onClose,
   service,
+  availableProducts = [],
   onSaved,
 }: ServiceModalProps) {
   const isEditing = !!service;
@@ -26,6 +28,7 @@ export function ServiceModal({
   const [durationMinutes, setDurationMinutes] = useState('30');
   const [price, setPrice] = useState('10000');
   const [active, setActive] = useState(true);
+  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
 
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -37,15 +40,28 @@ export function ServiceModal({
       setDurationMinutes(String(service.durationMinutes));
       setPrice(String(Number(service.price)));
       setActive(service.active);
+      try {
+        const parsed = JSON.parse(service.suggestedProductIds || '[]');
+        setSelectedProductIds(Array.isArray(parsed) ? parsed : []);
+      } catch {
+        setSelectedProductIds([]);
+      }
     } else {
       setName('');
       setDescription('');
       setDurationMinutes('30');
-      setPrice('10000');
+      setPrice('25000');
       setActive(true);
+      setSelectedProductIds([]);
     }
     setError(null);
   }, [service, isOpen]);
+
+  const toggleProductSuggestion = (prodId: string) => {
+    setSelectedProductIds((prev) =>
+      prev.includes(prodId) ? prev.filter((id) => id !== prodId) : [...prev, prodId]
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,25 +85,29 @@ export function ServiceModal({
 
     setError(null);
     startTransition(async () => {
-      const res = isEditing && service
-        ? await updateServiceAction(service.id, {
-            name,
-            description,
-            durationMinutes: duration,
-            price: numPrice,
-            active,
-          })
-        : await createServiceAction({
-            name,
-            description,
-            durationMinutes: duration,
-            price: numPrice,
-            active,
-          });
+      const res =
+        isEditing && service
+          ? await updateServiceAction(service.id, {
+              name,
+              description,
+              durationMinutes: duration,
+              price: numPrice,
+              active,
+              suggestedProductIds: selectedProductIds,
+            })
+          : await createServiceAction({
+              name,
+              description,
+              durationMinutes: duration,
+              price: numPrice,
+              active,
+              suggestedProductIds: selectedProductIds,
+            });
 
       if (res.success) {
         if (onSaved) onSaved();
         onClose();
+        window.location.reload();
       } else {
         setError(res.error || 'Ocurrió un error al guardar el servicio.');
       }
@@ -98,9 +118,9 @@ export function ServiceModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? 'Editar Servicio' : 'Nuevo Servicio de Barbería'}
-      description="Configurá el nombre, duración estimada y precio visible en la reserva online."
-      maxWidthClass="max-w-md"
+      title={isEditing ? 'Editar Servicio & Sugerencias' : 'Nuevo Servicio de Barbería'}
+      description="Configurá el servicio y qué productos del inventario sugerirle al cliente al agendar."
+      maxWidthClass="max-w-lg"
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-left">
         {error && (
@@ -164,7 +184,7 @@ export function ServiceModal({
               required
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="10000"
+              placeholder="25000"
               className="w-full px-3 py-2 text-base md:text-sm rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 min-h-[44px] focus:ring-2 focus:ring-amber-500"
             />
           </div>
@@ -186,6 +206,47 @@ export function ServiceModal({
             className="w-full p-2.5 text-base md:text-sm rounded-xl border border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 focus:ring-2 focus:ring-amber-500"
           />
         </div>
+
+        {/* Selector de Productos Sugeridos al cliente al reservar este servicio */}
+        {availableProducts.length > 0 && (
+          <div className="space-y-2 p-3.5 rounded-2xl bg-[#d4af37]/10 border border-[#d4af37]/30">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-800 dark:text-[#f4efe6]">
+              <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Productos para sugerir al cliente con este servicio:</span>
+            </label>
+            <p className="text-[11px] text-slate-600 dark:text-zinc-400">
+              Por ejemplo: sugerir Cera/Polvo en Corte de Cabello, o Aceite + Cera en Corte + Barba.
+            </p>
+            <div className="grid grid-cols-1 gap-1.5 max-h-40 overflow-y-auto pr-1 pt-1">
+              {availableProducts.map((prod) => {
+                const checked = selectedProductIds.includes(prod.id);
+                return (
+                  <label
+                    key={prod.id}
+                    className={`flex items-center justify-between gap-2 p-2.5 rounded-xl border text-xs cursor-pointer transition-colors ${
+                      checked
+                        ? 'border-[#d4af37] bg-[#d4af37]/15 font-bold text-slate-900 dark:text-white'
+                        : 'border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-slate-700 dark:text-zinc-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleProductSuggestion(prod.id)}
+                        className="w-4 h-4 accent-[#d4af37]"
+                      />
+                      <span>{prod.name}</span>
+                    </div>
+                    <span className="font-mono text-[#b38f2d] dark:text-[#d4af37]">
+                      ${Number(prod.price).toLocaleString('es-AR')}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <label className="flex items-center gap-2 pt-1 text-xs cursor-pointer">
           <input

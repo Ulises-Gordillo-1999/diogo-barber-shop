@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { loginAction, type AuthState } from '@/app/actions/authActions';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
 
 export default function LoginPage() {
   const [state, formAction, isPending] = useActionState<AuthState | null, FormData>(
@@ -83,6 +84,9 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* Botón de Acceso Biométrico / Passkey */}
+          <PasskeyLoginButton />
+
           {/* Formulario */}
           <form action={formAction} className="space-y-4">
             {/* Campo Email */}
@@ -102,7 +106,7 @@ export default function LoginPage() {
                   name="email"
                   type="email"
                   required
-                  autoComplete="email"
+                  autoComplete="username webauthn"
                   placeholder="admin@diogobarber.com"
                   className="w-full pl-10 pr-3.5 py-3.5 text-base md:text-sm rounded-xl border border-zinc-300 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-[#f4efe6] placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#d4af37] focus:border-[#d4af37] min-h-[46px] transition-all"
                 />

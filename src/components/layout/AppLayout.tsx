@@ -16,9 +16,12 @@ import {
   Sparkles,
   ShieldCheck,
   ChevronRight,
+  Package,
+  BookOpen,
 } from 'lucide-react';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { logoutAction } from '@/app/actions/authActions';
+import { PwaInstaller } from '@/components/pwa/PwaInstaller';
 
 const NAV_ITEMS = [
   {
@@ -37,23 +40,37 @@ const NAV_ITEMS = [
   },
   {
     code: '03',
-    href: '/dashboard/servicios',
-    label: 'Carta de Servicios',
-    sublabel: 'Cortes, precios & tiempos',
-    icon: Scissors,
+    href: '/dashboard/inventario',
+    label: 'Stock & Tienda',
+    sublabel: 'Productos, ventas & cadete',
+    icon: Package,
   },
   {
     code: '04',
+    href: '/dashboard/blog',
+    label: 'Blog & Portfolio',
+    sublabel: 'Cortes, técnicas & fotos',
+    icon: BookOpen,
+  },
+  {
+    code: '05',
+    href: '/dashboard/servicios',
+    label: 'Carta de Servicios',
+    sublabel: 'Cortes, precios & sugerencias',
+    icon: Scissors,
+  },
+  {
+    code: '06',
     href: '/dashboard/horarios',
     label: 'Horarios & Bloqueos',
     sublabel: 'Apertura, feriados & franco',
     icon: Clock,
   },
   {
-    code: '05',
+    code: '07',
     href: '/dashboard/usuarios',
     label: 'Equipo & Accesos',
-    sublabel: 'Barberos & administradores',
+    sublabel: 'Barberos & biometría',
     icon: Users,
   },
 ];
@@ -407,9 +424,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="max-w-7xl mx-auto space-y-6">{children}</div>
         </main>
 
+        {/* Notificación de Instalación PWA en Celular */}
+        <PwaInstaller />
+
         {/* Barra de Navegación Rápida Inferior en Celulares (< lg) */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-[#100f13]/95 backdrop-blur-xl border-t border-zinc-200 dark:border-zinc-800 px-2 py-1.5 grid grid-cols-5 gap-1">
-          {NAV_ITEMS.map((item) => {
+          {NAV_ITEMS.slice(0, 4).map((item) => {
             const Icon = item.icon;
             const active =
               item.href === '/dashboard'
@@ -432,6 +452,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-colors min-h-[48px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-[#d4af37]"
+          >
+            <Menu className="w-4 h-4" />
+            <span className="text-[10px] mt-1">Más</span>
+          </button>
         </nav>
       </div>
     </div>
